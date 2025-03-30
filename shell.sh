@@ -14,42 +14,43 @@ main_menu() {
     echo
     echo "Q - Exit from Program"
 
-    isValidChoice=true
+    is_valid_choice=true
 
-    while $isValidChoice; do
+    while $is_valid_choice; 
+    do
         echo
         read -p 'Please Select A Choice: ' menu_choice
         case ${menu_choice^^} in 
         "A")
-        isValidChoice=false
+        is_valid_choice=false
         add_patron_form
         ;;
         "S")
-        isValidChoice=false
+        is_valid_choice=false
         #Seach
         ;;
         "U")
-        isValidChoice=false
+        is_valid_choice=false
         #Update
         ;;
         "D")
-        isValidChoice=false
+        is_valid_choice=false
         #Delete
         ;;
         "L")
-        isValidChoice=false
+        is_valid_choice=false
         #Sort(LastName)
         ;;
         "P")
-        isValidChoice=false
+        is_valid_choice=false
         #Sort(PatronID)
         ;;
         "J")
-        isValidChoice=false
+        is_valid_choice=false
         #Sort(Date)
         ;;
         "Q")
-        isValidChoice=false
+        is_valid_choice=false
         exit 0
         ;;
         *)
@@ -73,18 +74,135 @@ add_patron_form() {
     echo
     echo "Press (q) to return to Patron Maintenance Menu."
 
-    isValidChoice=true
+    add_new_patron
+}
 
-    while $isValidChoice; do 
+add_new_patron() {
+
+    is_valid_choice=true
+
+    while $is_valid_choice; 
+    do 
         echo
         read -p 'Add another new patron details? (y)es or (q)uit: ' add_patron_choice
         case ${add_patron_choice^^} in 
         "Y")
-        isValidChoice=false
-        #AddNew 
+        is_valid_choice=false
+        clear
+        echo "Add New Patron Form"
+        echo "===================="
+
+        is_valid_patron_id=true
+
+        while $is_valid_patron_id; 
+        do
+            read -p 'Patron ID (Pxxxx): ' patron_id
+            if [ ${#patron_id} -eq 5 ] && [[ $patron_id =~ ^P[0-9]{4}$ ]] && [[ -n $patron_id ]]
+            then 
+                is_valid_patron_id=false
+                break
+            else 
+                echo "Please enter patron id in format (Pxxx)" 
+                echo 
+            fi
+        done
+
+        is_valid_first_name=true
+
+        while $is_valid_first_name;
+        do
+            read -p 'First Name: ' first_name
+            if [ ${#first_name} -lt 30 ] && [[ -n $first_name ]] && [[ $first_name == [a-z] || [A-Z] ]]
+            then 
+                is_valid_first_name=false
+                break
+            else 
+                echo "Please enter first name within 30 characters with only alphabets"
+                echo 
+            fi
+        done
+
+        is_valid_last_name=true
+
+        while $is_valid_last_name;
+        do
+            read -p 'Last Name: ' last_name
+            if [ ${#last_name} -lt 70 ] && [[ -n $last_name ]] && [[ $last_name == [a-z] || [A-Z] ]]
+            then 
+                is_valid_last_name=false
+                break
+            else 
+                echo "Please enter first name within 70 characters with only alphabets"
+                echo 
+            fi
+        done
+
+        is_valid_mobile_num=true
+
+        while $is_valid_mobile_num;
+        do
+            read -p 'Mobile Number (0xx-xxx xxxx): ' mobile_num
+            if [[ -n $mobile_num ]] && [[ $mobile_num =~ ^0[0-9]{2}-[0-9]{3}" "[0-9]{4}$ ]]
+            then 
+                is_valid_mobile_num=false
+                break
+            else 
+                echo "Please enter mobile number in the pattern of (0xx-xxx xxxx)"
+                echo 
+            fi
+        done
+        
+        is_valid_birth_date=true
+
+        while $is_valid_birth_date;
+        do
+            read -p 'Birth Date (MM-DD-YYYY): ' birth_date
+            if [[ -n $birth_date ]] && [[ $birth_date =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]
+            then 
+                is_valid_birth_date=false
+                break
+            else 
+                echo "Please enter birth date in the pattern of (MM-DD-YYYY)"
+                echo 
+            fi
+        done
+
+        is_valid_mem_type=true
+
+        while $is_valid_mem_type;
+        do
+            read -p 'Membership type (Student / Public): ' membership_type
+            if [[ -n $membership_type ]] && [[ $membership_type == Student ]] || [[ $membership_type == Public ]]
+            then 
+                is_valid_mem_type=false
+                break
+            else 
+                echo "Please enter valid membership type (Student/Public)"
+                echo 
+            fi
+        done
+
+        is_valid_joined_date=true
+
+        while $is_valid_joined_date;
+        do
+            read -p 'Joined Date (MM-DD-YYYY): ' joined_date
+            if [[ -n $joined_date ]] && [[ $joined_date =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]
+            then 
+                is_valid_joined_date=false
+                break
+            else 
+                echo "Please enter joined date in the pattern of (MM-DD-YYYY)"
+                echo 
+            fi
+        done
+
+        echo "$patron_id:$first_name:$last_name:$mobile_num:$birth_date:$membership_type:$joined_date" >> patron.txt
+        
+        add_new_patron
         ;;
         "Q")
-        isValidChoice=false
+        is_valid_choice=false
         exit 0
         ;;
         *)
@@ -92,26 +210,6 @@ add_patron_form() {
         ;;
         esac
     done
-}
-
-add_new_patron() {
-    clear
-    echo "Add New Patron Form"
-    echo "===================="
-
-    isValidPatronID=true
-
-    while $isValidPatronID; do
-        read -p 'Patron ID(eg: Pxxxx): ' patron_id
-    done
-    echo "First Name: "
-    echo "Last Name: "
-    echo "Mobile Number: "
-    echo "Birth Date (MM-DD-YYYY): "
-    echo "Membership type (Student / Public): "
-    echo "Joined Date (MM-DD-YYYY): "
-    echo
-    echo "Press (q) to return to Patron Maintenance Menu."
 }
 
 main_menu

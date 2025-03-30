@@ -1,0 +1,3 @@
+PatronID:FName:LName:MobileNum::BirthDate:Type:JoinedDate
+P1000:ting:rongyou:090-222 4444:12-12-2025:Student:12-12-2025
+P2000:ting:rongyou:023-233 4444:12-12-2025:Public:12-12-2025
