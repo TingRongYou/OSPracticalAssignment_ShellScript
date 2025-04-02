@@ -27,7 +27,7 @@ main_menu() {
         ;;
         "S")
         is_valid_choice=false
-        #Seach
+        search_patron_by_id
         ;;
         "U")
         is_valid_choice=false
@@ -210,6 +210,50 @@ add_new_patron() {
         ;;
         esac
     done
+}
+
+search_patron_by_id() {
+
+    clear
+    echo "Search a Patron Details"
+    echo
+
+    read -p 'Enter Patron ID: ' patron_id
+
+    grep "$patron_id" patron.txt
+
+    if [ $? -eq 0 ]
+    then
+        #something here 
+        patron_id=patron_id 
+    else 
+        echo "There is no record for patron id $patron_id"
+    fi
+
+        echo
+        echo "Press (q) to return to Patron Maintenance Menu."
+
+        is_valid_choice=true
+
+        while $is_valid_choice;
+        do 
+            echo
+            read -p 'Search another patron? (y)es or (q)uit: ' search_patron_choice
+            case ${search_patron_choice^^} in 
+            "Y")
+                is_valid_choice=false
+                search_patron_by_id
+                ;;
+            "Q")
+                is_valid_choice=false
+                exit 0
+                ;;
+            *)
+                echo ">>> Please enter valid choice (y, q)!"
+            esac
+        done
+
+    
 }
 
 main_menu
