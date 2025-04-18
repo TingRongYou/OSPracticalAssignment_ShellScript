@@ -4,9 +4,9 @@ DATA_FILE="$HOME/OSPracticalAssignment_ShellScript/patron.txt"
 
 main_menu() {
     clear
-    echo "====================================="
-    echo "         Patron Maintenance Menu     "
-    echo "====================================="
+    echo "======================================================="
+    echo "               Patron Maintenance Menu                "
+    echo "======================================================="
     echo
     echo "A - Add New Patron Details"
     echo "S - Search A Patron (by Patron ID)"
@@ -66,9 +66,9 @@ main_menu() {
 
 add_patron_form() {
     clear
-    echo "====================================="
-    echo "           Add New Patron Form       "
-    echo "====================================="
+    echo "======================================================="
+    echo "                  Add New Patron Form                  "   
+    echo "======================================================="
     echo
     echo "Patron ID: "
     echo "First Name: "
@@ -95,9 +95,9 @@ add_new_patron() {
         "Y")
             is_valid_choice=false
             clear
-            echo "====================================="
-            echo "           Add New Patron Form       "
-            echo "====================================="
+            echo "======================================================="
+            echo "                  Add New Patron Form                  "   
+            echo "======================================================="
             echo
 
             is_valid_patron_id=true
@@ -124,6 +124,7 @@ add_new_patron() {
                     is_valid_first_name=false
                 else
                     echo "Please enter a valid first name (only alphabets, max 30 characters)."
+                    echo
                 fi
             done
 
@@ -151,6 +152,7 @@ add_new_patron() {
                     is_valid_mobile_num=false
                 else
                     echo "Please enter a valid mobile number (e.g., 0xx-xxx xxxx)."
+                    echo
                 fi
             done
 
@@ -169,6 +171,28 @@ add_new_patron() {
                 fi
             done
 
+            is_valid_joined_date=true
+            while $is_valid_joined_date; do
+                read -p 'Joined Date (MM-DD-YYYY): ' joined_date
+                if [[ -n $joined_date ]] && [[ $joined_date =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]; then
+                    # Validate that joined date is after birth date
+                    if birth_date_epoch=$(date -d "$(echo "$birth_date" | sed 's/-/\//g')" +%s 2>/dev/null) && joined_date_epoch=$(date -d "$(echo "$joined_date" | sed 's/-/\//g')" +%s 2>/dev/null); then
+                        if [[ $joined_date_epoch -gt $birth_date_epoch ]]; then
+                            is_valid_joined_date=false
+                        else
+                            echo "Error: Joined Date must be after Birth Date ($birth_date). Please try again."
+                            echo
+                        fi
+                    else
+                        echo "Error: Unable to parse the date. Ensure the date is valid and in MM-DD-YYYY format."
+                        echo
+                    fi
+                else
+                    echo "Error: Please enter a valid Joined Date in the format MM-DD-YYYY."
+                    echo
+                fi
+            done
+
             is_valid_mem_type=true
 
             while $is_valid_mem_type;
@@ -178,20 +202,6 @@ add_new_patron() {
                     is_valid_mem_type=false
                 else
                     echo "Please enter a valid membership type (Student/Public)."
-                fi
-            done
-
-            is_valid_joined_date=true
-
-            while $is_valid_joined_date;
-            do
-                read -p 'Joined Date (MM-DD-YYYY): ' joined_date
-                if [[ -n $joined_date ]] && [[ $joined_date =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]
-                then
-                    is_valid_joined_date=false
-                    break
-                else
-                    echo "Please enter joined date in the pattern of (MM-DD-YYYY)"
                     echo
                 fi
             done
@@ -207,59 +217,89 @@ add_new_patron() {
         *)
             echo ">>> Please enter valid choice (y, q)!"
             ;;
-        esac
+    esac
     done
 }
 
 search_patron_by_id() {
+    local continue_search=true
+    while $continue_search; do
+        clear
+        echo "======================================================="
+        echo "               Search a Patron Details                "
+        echo "======================================================="
+        echo
 
-    clear
-    echo "====================================="
-    echo "         Search a Patron Details     "
-    echo "====================================="
-    echo
+        is_valid_patron_id=false
+        while ! $is_valid_patron_id; do
+            read -p 'Enter Patron ID (or press q to quit): ' patron_id
 
-    read -p 'Enter Patron ID: ' patron_id
+            if [[ ${patron_id,,} == "q" ]]; then
+                continue_search=false
+                main_menu
+                return
+            fi
 
-    # Search for the patron details
-    patron_details=$(grep -i "^$patron_id:" patron.txt)
+            # Validate Patron ID format (Pxxxx)
+            if [[ "$patron_id" =~ ^P[0-9]{4}$ ]]; then
+                is_valid_patron_id=true
+            else
+                echo "Invalid Patron ID format. Please use Pxxxx."
+                echo
+                read -p "Press any key to try again..." -n 1
+                echo
+            fi
+        done
 
-    if [[ -n "$patron_details" ]]; then
-        # Parse and display the patron details
-        IFS=":" read -r current_patron_id first_name last_name mobile_number birth_date membership_type joined_date <<< "$patron_details"
+        # Search for the patron details
+        patron_details=$(grep -i "^$patron_id:" "$DATA_FILE")
+
+        if [[ -n "$patron_details" ]]; then
+            # Parse and display the patron details
+            IFS=":" read -r current_patron_id first_name last_name mobile_number birth_date membership_type joined_date <<< "$patron_details"
+
+            clear
+            echo "Patron ID: $current_patron_id"
+            echo "First Name: $first_name"
+            echo "Last Name: $last_name"
+            echo "Mobile Number: $mobile_number"
+            echo "Birth Date (MM-DD-YYYY): $birth_date"
+            echo "Membership type: $membership_type"
+            echo "Joined Date (MM-DD-YYYY): $joined_date"
+            echo
+        else
+            echo "There is no record for patron id $patron_id"
+        fi
 
         echo
-        echo "Patron ID: $current_patron_id"
-        echo "First Name: $first_name"
-        echo "Last Name: $last_name"
-        echo "Mobile Number: $mobile_number"
-        echo "Birth Date (MM-DD-YYYY): $birth_date"
-        echo "Membership type: $membership_type"
-        echo "Joined Date (MM-DD-YYYY): $joined_date"
-        echo
-    else
-        echo "There is no record for patron id $patron_id"
-    fi
-
-    echo
-    read -p "Press any key to return to Patron Maintenance Menu..." -n 1
-    main_menu
+        read -p "Press any key to search again or enter 'q' to quit..." choice
+        if [[ ${choice,,} == "q" ]]; then
+            continue_search=false
+            main_menu
+            return
+        fi
+    done
 }
 
 update_patron() {
     clear
-    echo "====================================="
-    echo "         Update Patron Details       "
-    echo "====================================="
+    echo "======================================================="
+    echo "               Update Patron Details                  "
+    echo "======================================================="
     echo
 
-    read -p "Enter Patron ID: " patron_id
+    is_valid_patron_id=false
+    while ! $is_valid_patron_id; do
+        read -p "Enter Patron ID: " patron_id
 
-    # Validation: Patron ID format (Pxxxx)
-    if [[ ! "$patron_id" =~ ^P[0-9]{4}$ ]]; then
-        echo "Invalid Patron ID format. Please use Pxxxx."
-        return
-    fi
+        # Validation: Patron ID format (Pxxxx)
+        if [[ "$patron_id" =~ ^P[0-9]{4}$ ]]; then
+            is_valid_patron_id=true
+        else
+            echo "Invalid Patron ID format. Please use Pxxxx."
+            echo
+        fi
+    done
 
     # Check if Patron ID exists (case-insensitive search, skip header)
     patron_details=$(sed '1d' "$DATA_FILE" | grep -i "^$patron_id:")
@@ -285,28 +325,43 @@ update_patron() {
     echo "Enter new details (or press Enter to keep current):"
 
     # Validation and update for Mobile Number
-    while true; do
+    is_valid_mobile_num=true
+    while $is_valid_mobile_num; do
         read -p "Mobile Number (e.g., 0xx-xxx xxxx) [$mobile_number]: " new_mobile_number
         if [[ -z "$new_mobile_number" ]]; then
             new_mobile_number="$mobile_number" # Keep current if empty
-            break
+            is_valid_mobile_num=false
         elif [[ "$new_mobile_number" =~ ^0[0-9]{2}-[0-9]{3}\ [0-9]{4}$ ]]; then
-            break # Valid format
+            is_valid_mobile_num=false
         else
             echo "Invalid Mobile Number. Please use the format 0xx-xxx xxxx."
+            echo
         fi
     done
 
     # Validation and update for Birth Date
-    while true; do
+    is_valid_birth_date=true
+    while $is_valid_birth_date; do
         read -p "Birth Date (MM-DD-YYYY) [$birth_date]: " new_birth_date
         if [[ -z "$new_birth_date" ]]; then
             new_birth_date="$birth_date" # Keep current if empty
-            break
+            is_valid_birth_date=false
         elif [[ "$new_birth_date" =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]; then
-            break # Valid format
+            # Validate that birth date is before joined date
+            if birth_date_epoch=$(date -d "$(echo "$new_birth_date" | sed 's/-/\//g')" +%s 2>/dev/null) && joined_date_epoch=$(date -d "$(echo "$joined_date" | sed 's/-/\//g')" +%s 2>/dev/null); then
+                if [[ $birth_date_epoch -lt $joined_date_epoch ]]; then
+                    is_valid_birth_date=false
+                else
+                    echo "Birth Date must be before Joined Date ($joined_date)."
+                    echo
+                fi
+            else
+                echo "Invalid date. Please ensure the date is valid and in MM-DD-YYYY format."
+                echo
+            fi
         else
             echo "Invalid Birth Date. Format: MM-DD-YYYY"
+            echo
         fi
     done
 
@@ -349,100 +404,134 @@ update_patron() {
             ;;
         *)
             echo "Invalid input. Please enter (y)es or (q)uit."
+            echo
             ;;
     esac
 
     echo
-    echo "Press (q) to return to Patron Maintenance Menu."
-
-    read -p "Press any key to continue..."
-    read -p "Update another patron? (y/n): " another_update
-
-    if [[ "$another_update" =~ ^[Yy]$ ]]; then
-        update_patron # Recursive call to update another
-    else
+    read -p "Press (q) to return to Patron Maintenance Menu or any key to continue..." choice
+    if [[ ${choice,,} == "q" ]]; then
         main_menu
+        return
     fi
+
+    read -p "Update another patron? (y/n/q): " another_update
+    case ${another_update,,} in
+        "y")
+            update_patron # Recursive call to update another
+            ;;
+        "n")
+            main_menu
+            ;;
+        "q")
+            main_menu
+            ;;
+        *)
+            echo "Invalid input. Please enter (y), (n), or (q)."
+            main_menu
+            ;;
+    esac
 }
 
 delete_patron() {
     clear
-    echo "====================================="
-    echo "         Delete Patron Details       "
-    echo "====================================="
+    echo "======================================================="
+    echo "               Delete Patron Details                  "
+    echo "======================================================="
     echo
-    read -p "Enter Patron ID: " patron_id
 
-    # Validation: Patron ID format (Pxxxx)
-    if [[ ! "$patron_id" =~ ^P[0-9]{4}$ ]]; then
-        echo "Invalid Patron ID format. Please use Pxxxx."
-        return
-    fi
+    is_valid_patron_id=false
+    while ! $is_valid_patron_id; do
+        read -p "Enter Patron ID: " patron_id
 
-    # Check if Patron ID exists
-    if ! grep -q "^$patron_id:" "$DATA_FILE"; then
-        echo "Patron with ID '$patron_id' not found."
-        return
-    fi
+        # Validation: Patron ID format (Pxxxx)
+        if [[ "$patron_id" =~ ^P[0-9]{4}$ ]]; then
+            # Check if Patron ID exists
+            if grep -q "^$patron_id:" "$DATA_FILE"; then
+                is_valid_patron_id=true
+            else
+                echo "Patron with ID '$patron_id' not found. Please try again."
+                echo
+            fi
+        else
+            echo "Invalid Patron ID format. Please use Pxxxx."
+            echo
+        fi
+    done
 
+    # Fetch and display Patron details
     IFS=":" read -r current_patron_id first_name last_name mobile_number birth_date membership_type joined_date < <(grep "^$patron_id:" "$DATA_FILE")
 
     echo
-    echo "First Name: " $first_name
-    echo "Last Name: " $last_name
-    echo "Mobile Number: " $mobile_number
-    echo "Birth Date (MM-DD-YYYY): " $birth_date
-    echo "Membership type: " $membership_type
-    echo "Joined Date (MM-DD-YYYY): " $joined_date
+    echo "First Name: $first_name"
+    echo "Last Name: $last_name"
+    echo "Mobile Number: $mobile_number"
+    echo "Birth Date (MM-DD-YYYY): $birth_date"
+    echo "Membership type: $membership_type"
+    echo "Joined Date (MM-DD-YYYY): $joined_date"
     echo
 
     echo "Press (q) to return to Patron Maintenance Menu."
 
-    read -p "Are you sure you want to DELETE the above Patron Details? (y)es or (q)uit: " delete_confirmation
+    is_valid_confirmation=false
+    while ! $is_valid_confirmation; do
+        read -p "Are you sure you want to DELETE the above Patron Details? (y)es or (q)uit: " delete_confirmation
 
-    case ${delete_confirmation,,} in
+        case ${delete_confirmation,,} in
+            "y")
+                is_valid_confirmation=true
+                temp_file=$(mktemp)
+
+                while IFS=":" read -r p_id f_name l_name m_num b_date m_type j_date; do
+                    if [[ "$p_id" != "$patron_id" ]]; then
+                        echo "$p_id:$f_name:$l_name:$m_num:$b_date:$m_type:$j_date" >> "$temp_file"
+                    fi
+                done < "$DATA_FILE"
+
+                mv "$temp_file" "$DATA_FILE"
+
+                echo "Patron details deleted successfully!"
+                ;;
+            "q")
+                is_valid_confirmation=true
+                echo "Delete cancelled!"
+                main_menu
+                return
+                ;;
+            *)
+                echo "Invalid input. Please enter (y)es or (q)uit!"
+                echo
+                ;;
+        esac
+    done
+
+    echo
+    read -p "Press (q) to return to Patron Maintenance Menu or any key to continue..." choice
+    if [[ ${choice,,} == "q" ]]; then
+        main_menu
+        return
+    fi
+
+    read -p "Delete another patron? (y/n): " another_delete
+    case ${another_delete,,} in
         "y")
-
-            temp_file=$(mktemp)
-
-            while IFS=":" read -r p_id f_name l_name m_num b_date m_type j_date; do
-                if [[ "$p_id" != "$patron_id" ]]; then
-                    echo "$p_id:$f_name:$l_name:$m_num:$b_date:$m_type:$j_date" >> "$temp_file"
-                fi
-            done < "$DATA_FILE"
-
-            mv "$temp_file" "$DATA_FILE"
-
-            echo "Patron details deleted successfully!"
+            delete_patron # Recursive call to delete another
             ;;
-
-        "q")
-            echo "Delete cancelled!"
+        "n" | "q")
+            main_menu
             ;;
-
         *)
-            echo "Invalid input. Please enter (y)es or (q)uit!"
+            echo "Invalid input. Please enter (y), (n), or (q)."
+            main_menu
             ;;
     esac
-
-    echo
-    echo "Press (q) to return to Patron Maintenance Menu."
-
-    read -p "Press any key to continue..."
-    read -p "Delete another patron? (y/n): " another_delete
-
-    if [[ "$another_delete" =~ ^[Yy]$ ]]; then
-        delete_patron # Recursive call to delete another
-    else
-        main_menu
-    fi
 }
 
 sort_last_name() {
     clear
-    echo "====================================="
-    echo "   Patron Details Sorted by Last Name"
-    echo "====================================="
+    echo "=============================================================================================================="
+    echo "                                      Patron Details Sorted by Last Name                                      "
+    echo "=============================================================================================================="
     echo
 
     echo "Last Name                 First Name                Mobile Number        Joined Date     Membership Type"
@@ -469,29 +558,33 @@ sort_last_name() {
     echo
 
     # Ask the user if they want to export the sorted report to a file.
-    read -p "Would you like to export the report as ASCII text file! (y)es (q)uit: " export_choice
-    echo
+    is_valid_export_choice=false
+    while ! $is_valid_export_choice; do
+        read -p "Would you like to export the report as ASCII text file! (y)es (q)uit: " export_choice
+        case ${export_choice,,} in
+            "y" )
+                is_valid_export_choice=true
+                read -p "Enter the file name to save the report: " export_file_name
+                echo
 
-    case ${export_choice,,} in
-        "y" )
-            read -p "Enter the file name to save the report: " export_file_name
-            echo
+                # Prepend "Sort_LastName_" to the file name
+                export_file_name="Sort_LastName_${export_file_name}"
 
-            # Prepend "Sort_LastName_" to the file name
-            export_file_name="Sort_LastName_${export_file_name}"
+                # Skip the first line, sort the data, and save only the required fields with adjusted formatting to the specified file.
+                tail -n +2 "$DATA_FILE" | sort -t ":" -k3 | awk -F ":" '{printf "%-25s %-25s %-20s %-15s %-20s\n", $3, $2, $4, $7, $6}' > "$export_file_name"
 
-            # Skip the first line, sort the data, and save only the required fields with adjusted formatting to the specified file.
-            tail -n +2 "$DATA_FILE" | sort -t ":" -k3 | awk -F ":" '{printf "%-25s %-25s %-20s %-15s %-20s\n", $3, $2, $4, $7, $6}' > "$export_file_name"
-
-            echo "Report exported successfully to $export_file_name!"
-            ;;
-        "q" )
-            echo "Export cancelled!"
-            ;;
-        * )
-            echo "Invalid input. Please enter (y)es or (q)uit!"
-            ;;
-    esac
+                echo "Report exported successfully to $export_file_name!"
+                ;;
+            "q" )echo
+                is_valid_export_choice=true
+                echo "Export cancelled!"
+                ;;
+            * )
+                echo "Invalid input. Please enter (y)es or (q)uit!"
+                echo
+                ;;
+        esac
+    done
 
     echo
     read -p "Press any key to return to Patron Maintenance Menu..." -n 1
@@ -500,9 +593,9 @@ sort_last_name() {
 
 sort_patron_id() {
     clear
-    echo "====================================="
-    echo "   Patron Details Sorted by Patron ID"
-    echo "====================================="
+    echo "======================================================="
+    echo "       Patron Details Sorted by Patron ID             "
+    echo "======================================================="
     echo
 
     echo "Patron ID              Last Name                 First Name                Mobile Number          Birth Date"
@@ -529,32 +622,36 @@ sort_patron_id() {
     echo
 
     # Ask the user if they want to export the sorted report to a file.
-    read -p "Would you like to export the report as ASCII text file! (y)es (q)uit: " export_choice
-    echo
+    is_valid_export_choice=false
+    while ! $is_valid_export_choice; do
+        read -p "Would you like to export the report as ASCII text file! (y)es (q)uit: " export_choice
+        case ${export_choice,,} in
+            "y" )
+                is_valid_export_choice=true
+                read -p "Enter the file name to save the report: " export_file_name
 
-    case ${export_choice,,} in
-        "y" )
-            read -p "Enter the file name to save the report: " export_file_name
+                echo
 
-            echo
+                # Prepend "Sort_ID_" to the file name
+                export_file_name="Sort_ID_${export_file_name}"
 
-            # Prepend "Sort_ID_" to the file name
-            export_file_name="Sort_ID_${export_file_name}"
+                # Skip the first line, sort the data, and save the required fields with adjusted formatting to the file.
+                tail -n +2 "$DATA_FILE" | sort -t ":" -k1 | awk -F ":" '{printf "%-22s %-25s %-25s %-22s %-15s\n", $1, $3, $2, $4, $5}' > "$export_file_name"
 
-            # Skip the first line, sort the data, and save the required fields with adjusted formatting to the file.
-            tail -n +2 "$DATA_FILE" | sort -t ":" -k1 | awk -F ":" '{printf "%-22s %-25s %-25s %-22s %-15s\n", $1, $3, $2, $4, $5}' > "$export_file_name"
+                echo "Report exported successfully to $export_file_name!"
+                ;;
 
-            echo "Report exported successfully to $export_file_name!"
-            ;;
+            "q" )
+                is_valid_export_choice=true
+                echo "Export cancelled!"
+                ;;
 
-        "q" )
-            echo "Export cancelled!"
-            ;;
-
-        * )
-            echo "Invalid input. Please enter (y)es or (q)uit!"
-            ;;
-    esac
+            * )
+                echo "Invalid input. Please enter (y)es or (q)uit!"
+                echo
+                ;;
+        esac
+    done
 
     echo
     read -p "Please press any key to return to Patron Maintenance Menu..." -n 1
@@ -563,9 +660,9 @@ sort_patron_id() {
 
 sort_joined_date() {
     clear
-    echo "====================================="
-    echo "  Patron Details Sorted by Joined Date"
-    echo "====================================="
+    echo "======================================================="
+    echo "       Patron Details Sorted by Joined Date           "
+    echo "======================================================="
     echo
     echo "Patron ID              Last Name                 First Name                Mobile Number          Joined Date"
     echo "-------------------------------------------------------------------------------------------------------------"
@@ -590,32 +687,35 @@ sort_joined_date() {
     echo
 
     # Ask the user if they want to export the sorted report to a file.
-    read -p "Would you like to export the report as ASCII text file! (y)es (q)uit: " export_choice
+    is_valid_export_choice=false
+    while ! $is_valid_export_choice; do
+        read -p "Would you like to export the report as ASCII text file! (y)es (q)uit: " export_choice
+        case ${export_choice,,} in
+            "y" )
+                is_valid_export_choice=true
+                read -p "Enter the file name to save the report: " export_file_name
+                echo
 
-    echo
+                # Prepend "Sort_JoinedDate_" to the file name
+                export_file_name="Sort_JoinedDate_${export_file_name}"
 
-    case ${export_choice,,} in
-        "y" )
-            read -p "Enter the file name to save the report: " export_file_name
-            echo
+                # Skip the first line, sort the data, and save the required fields with adjusted formatting to the file.
+                tail -n +2 "$DATA_FILE" | sort -t ":" -k7r | awk -F ":" '{printf "%-22s %-25s %-25s %-22s %-15s\n", $1, $3, $2, $4, $7}' > "$export_file_name"
 
-            # Prepend "Sort_JoinedDate_" to the file name
-            export_file_name="Sort_JoinedDate_${export_file_name}"
+                echo "Report exported successfully to $export_file_name!"
+                ;;
 
-            # Skip the first line, sort the data, and save the required fields with adjusted formatting to the file.
-            tail -n +2 "$DATA_FILE" | sort -t ":" -k7r | awk -F ":" '{printf "%-22s %-25s %-25s %-22s %-15s\n", $1, $3, $2, $4, $7}' > "$export_file_name"
+            "q" )
+                is_valid_export_choice=true
+                echo "Export cancelled!"
+                ;;
 
-            echo "Report exported successfully to $export_file_name!"
-            ;;
-
-        "q" )
-            echo "Export cancelled!"
-            ;;
-
-        * )
-            echo "Invalid input. Please enter (y)es or (q)uit!"
-            ;;
-    esac
+            * )
+                echo "Invalid input. Please enter (y)es or (q)uit!"
+                echo
+                ;;
+        esac
+    done
 
     echo
     read -p "Press any key to return to Patron Maintenance Menu..." -n 1
