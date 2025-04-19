@@ -290,23 +290,29 @@ update_patron() {
 
     is_valid_patron_id=false
     while ! $is_valid_patron_id; do
-        read -p "Enter Patron ID: " patron_id
+        read -p "Enter Patron ID (or press q to quit): " patron_id
+
+        # Allow user to quit
+        if [[ ${patron_id,,} == "q" ]]; then
+            main_menu
+            return
+        fi
 
         # Validation: Patron ID format (Pxxxx)
         if [[ "$patron_id" =~ ^P[0-9]{4}$ ]]; then
-            is_valid_patron_id=true
+            # Check if Patron ID exists
+            patron_details=$(grep -i "^$patron_id:" "$DATA_FILE")
+            if [[ -n "$patron_details" ]]; then
+                is_valid_patron_id=true
+            else
+                echo "Patron with ID '$patron_id' not found. Please check the ID and try again."
+                echo
+            fi
         else
             echo "Invalid Patron ID format. Please use Pxxxx."
             echo
         fi
     done
-
-    # Check if Patron ID exists (case-insensitive search, skip header)
-    patron_details=$(sed '1d' "$DATA_FILE" | grep -i "^$patron_id:")
-    if [[ -z "$patron_details" ]]; then
-        echo "Patron with ID '$patron_id' not found. Please check the ID and try again."
-        return
-    fi
 
     # Fetch current patron details
     IFS=":" read -r current_patron_id first_name last_name mobile_number birth_date membership_type joined_date <<< "$patron_details"
