@@ -1,6 +1,6 @@
 #! /bin/bash
 
-DATA_FILE="$HOME/OSPracticalAssignment_ShellScript/patron.txt"
+DATA_FILE="$HOME/Desktop/code/OSPracticalAssignment_ShellScript/patron.txt"
 
 main_menu() {
     clear
@@ -171,10 +171,24 @@ add_new_patron() {
                 fi
             done
 
+            is_valid_mem_type=true
+
+            while $is_valid_mem_type;
+            do
+                read -p 'Membership type (Student / Public): ' membership_type
+                if [[ $membership_type == "Student" || $membership_type == "Public" ]]; then
+                    is_valid_mem_type=false
+                else
+                    echo "Please enter a valid membership type (Student/Public)."
+                    echo
+                fi
+            done
+
             is_valid_joined_date=true
             while $is_valid_joined_date; do
-                read -p 'Joined Date (MM-DD-YYYY): ' joined_date
-                if [[ -n $joined_date ]] && [[ $joined_date =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]; then
+                echo -n "Joined Date (MM-DD-YYYY): " 
+                read joined_date
+                if [[ $joined_date =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]; then
                     # Validate that joined date is after birth date
                     if birth_date_epoch=$(date -d "$(echo "$birth_date" | sed 's/-/\//g')" +%s 2>/dev/null) && joined_date_epoch=$(date -d "$(echo "$joined_date" | sed 's/-/\//g')" +%s 2>/dev/null); then
                         if [[ $joined_date_epoch -gt $birth_date_epoch ]]; then
@@ -187,21 +201,14 @@ add_new_patron() {
                         echo "Error: Unable to parse the date. Ensure the date is valid and in MM-DD-YYYY format."
                         echo
                     fi
-                else
-                    echo "Error: Please enter a valid Joined Date in the format MM-DD-YYYY."
-                    echo
-                fi
-            done
-
-            is_valid_mem_type=true
-
-            while $is_valid_mem_type;
-            do
-                read -p 'Membership type (Student / Public): ' membership_type
-                if [[ $membership_type == "Student" || $membership_type == "Public" ]]; then
-                    is_valid_mem_type=false
-                else
-                    echo "Please enter a valid membership type (Student/Public)."
+                elif [[ -z $joined_date ]]; then
+                    # Set the current date as default if no input is provided
+                    # Use the current date in MM-DD-YYYY format
+                    joined_date=$(date +%m-%d-%Y)
+                    echo "The current date ("$joined_date") is set as default date."
+                    is_valid_joined_date=false
+                else 
+                    echo "Please enter a valid joined date (MM-DD-YYYY)."
                     echo
                 fi
             done
@@ -223,7 +230,6 @@ add_new_patron() {
 
 search_patron_by_id() {
     local continue_search=true
-    while $continue_search; do
         clear
         echo "======================================================="
         echo "               Search a Patron Details                "
@@ -232,13 +238,7 @@ search_patron_by_id() {
 
         is_valid_patron_id=false
         while ! $is_valid_patron_id; do
-            read -p 'Enter Patron ID (or press q to quit): ' patron_id
-
-            if [[ ${patron_id,,} == "q" ]]; then
-                continue_search=false
-                main_menu
-                return
-            fi
+            read -p 'Enter Patron ID: ' patron_id
 
             # Validate Patron ID format (Pxxxx)
             if [[ "$patron_id" =~ ^P[0-9]{4}$ ]]; then
@@ -251,6 +251,9 @@ search_patron_by_id() {
             fi
         done
 
+        echo "======================================================="
+        echo
+
         # Search for the patron details
         patron_details=$(grep -i "^$patron_id:" "$DATA_FILE")
 
@@ -258,8 +261,6 @@ search_patron_by_id() {
             # Parse and display the patron details
             IFS=":" read -r current_patron_id first_name last_name mobile_number birth_date membership_type joined_date <<< "$patron_details"
 
-            clear
-            echo "Patron ID: $current_patron_id"
             echo "First Name: $first_name"
             echo "Last Name: $last_name"
             echo "Mobile Number: $mobile_number"
@@ -271,14 +272,27 @@ search_patron_by_id() {
             echo "There is no record for patron id $patron_id"
         fi
 
+        echo "======================================================="
         echo
-        read -p "Press any key to search again or enter 'q' to quit..." choice
-        if [[ ${choice,,} == "q" ]]; then
-            continue_search=false
-            main_menu
-            return
-        fi
-    done
+        echo "Press (q) to return to Patron Maintenance Menu."
+        echo
+
+        while $continue_search; do
+            read -p 'Search another patron? (y)es or (q)uit: ' search_patron_choice
+            case ${search_patron_choice^^} in
+            "Y")
+                search_patron_by_id
+                ;;
+            "Q")
+                continue_search=false
+                main_menu
+                ;;
+            *)
+                echo ">>> Please enter valid choice (y, q)!"
+                echo
+                ;;
+            esac
+        done
 }
 
 update_patron() {
@@ -290,13 +304,7 @@ update_patron() {
 
     is_valid_patron_id=false
     while ! $is_valid_patron_id; do
-        read -p "Enter Patron ID (or press q to quit): " patron_id
-
-        # Allow user to quit
-        if [[ ${patron_id,,} == "q" ]]; then
-            main_menu
-            return
-        fi
+        read -p "Enter Patron ID: " patron_id
 
         # Validation: Patron ID format (Pxxxx)
         if [[ "$patron_id" =~ ^P[0-9]{4}$ ]]; then
@@ -314,129 +322,160 @@ update_patron() {
         fi
     done
 
+
     # Fetch current patron details
     IFS=":" read -r current_patron_id first_name last_name mobile_number birth_date membership_type joined_date <<< "$patron_details"
 
     # Display current details
+    echo "======================================================="
     echo
     echo "First Name: $first_name"
     echo "Last Name: $last_name"
     echo "Mobile Number: $mobile_number"
     echo "Birth Date (MM-DD-YYYY): $birth_date"
     echo "Membership type: $membership_type"
-    echo "Joined Date: $joined_date"
+    echo "Joined Date (MM-DD-YYYY): $joined_date"
+    echo
+    echo "======================================================="
     echo
 
     # Prompt for new details (only Mobile Number and Birth Date)
-    echo "Enter new details (or press Enter to keep current):"
+    echo "Press (q) to return to Patron Maintenance Menu."
+    echo
 
-    # Validation and update for Mobile Number
-    is_valid_mobile_num=true
-    while $is_valid_mobile_num; do
-        read -p "Mobile Number (e.g., 0xx-xxx xxxx) [$mobile_number]: " new_mobile_number
-        if [[ -z "$new_mobile_number" ]]; then
-            new_mobile_number="$mobile_number" # Keep current if empty
-            is_valid_mobile_num=false
-        elif [[ "$new_mobile_number" =~ ^0[0-9]{2}-[0-9]{3}\ [0-9]{4}$ ]]; then
-            is_valid_mobile_num=false
-        else
-            echo "Invalid Mobile Number. Please use the format 0xx-xxx xxxx."
-            echo
-        fi
-    done
-
-    # Validation and update for Birth Date
-    is_valid_birth_date=true
-    while $is_valid_birth_date; do
-        read -p "Birth Date (MM-DD-YYYY) [$birth_date]: " new_birth_date
-        if [[ -z "$new_birth_date" ]]; then
-            new_birth_date="$birth_date" # Keep current if empty
-            is_valid_birth_date=false
-        elif [[ "$new_birth_date" =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]; then
-            # Validate that birth date is before joined date
-            if birth_date_epoch=$(date -d "$(echo "$new_birth_date" | sed 's/-/\//g')" +%s 2>/dev/null) && joined_date_epoch=$(date -d "$(echo "$joined_date" | sed 's/-/\//g')" +%s 2>/dev/null); then
-                if [[ $birth_date_epoch -lt $joined_date_epoch ]]; then
-                    is_valid_birth_date=false
+    continue_update=true
+    while $continue_update; do
+        read -p "Are you sure you want to UPDATE the above Patron Details? (y)es or (q)uit: " update_confirmation
+        case ${update_confirmation^^} in
+        "Y")
+                    # Validation and update for Mobile Number
+            is_valid_mobile_num=true
+            while $is_valid_mobile_num; do
+                read -p "Mobile Number (e.g., 0xx-xxx xxxx) [$mobile_number]: " new_mobile_number
+                if [[ -z "$new_mobile_number" ]]; then
+                    new_mobile_number="$mobile_number" # Keep current if empty
+                    is_valid_mobile_num=false
+                elif [[ "$new_mobile_number" =~ ^0[0-9]{2}-[0-9]{3}\ [0-9]{4}$ ]]; then
+                    is_valid_mobile_num=false
                 else
-                    echo "Birth Date must be before Joined Date ($joined_date)."
+                    echo "Invalid Mobile Number. Please use the format 0xx-xxx xxxx."
                     echo
                 fi
-            else
-                echo "Invalid date. Please ensure the date is valid and in MM-DD-YYYY format."
-                echo
-            fi
-        else
-            echo "Invalid Birth Date. Format: MM-DD-YYYY"
-            echo
-        fi
-    done
+            done
 
-    # Confirm update
-    echo
-    echo "New Details:"
-    echo
-    echo "Patron ID: $current_patron_id"
-    echo "First Name: $first_name"
-    echo "Last Name: $last_name"
-    echo "Mobile Number: $new_mobile_number"
-    echo "Birth Date (MM-DD-YYYY): $new_birth_date"
-    echo "Membership type: $membership_type"
-    echo "Joined Date: $joined_date"
-    echo
-
-    read -p "Are you sure you want to UPDATE the above Patron Details? (y)es or (q)uit: " update_confirmation
-
-    case ${update_confirmation,,} in
-        "y")
-            # Update the patron.txt file
-            temp_file=$(mktemp)
-
-            # Rebuild the file with the updated information
-            while IFS=":" read -r p_id f_name l_name m_num b_date m_type j_date; do
-                if [[ "$p_id" == "$patron_id" ]]; then
-                    echo "$p_id:$f_name:$l_name:$new_mobile_number:$new_birth_date:$m_type:$j_date" >> "$temp_file"
+            # Validation and update for Birth Date
+            is_valid_birth_date=true
+            while $is_valid_birth_date; do
+                read -p "Birth Date (MM-DD-YYYY) [$birth_date]: " new_birth_date
+                if [[ -z "$new_birth_date" ]]; then
+                    new_birth_date="$birth_date" # Keep current if empty
+                    is_valid_birth_date=false
+                elif [[ "$new_birth_date" =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]; then
+                    # Validate that birth date is before joined date
+                    if birth_date_epoch=$(date -d "$(echo "$new_birth_date" | sed 's/-/\//g')" +%s 2>/dev/null) && joined_date_epoch=$(date -d "$(echo "$joined_date" | sed 's/-/\//g')" +%s 2>/dev/null); then
+                        if [[ $birth_date_epoch -lt $joined_date_epoch ]]; then
+                            is_valid_birth_date=false
+                        else
+                            echo "Birth Date must be before Joined Date ($joined_date)."
+                            echo
+                        fi
+                    else
+                        echo "Invalid date. Please ensure the date is valid and in MM-DD-YYYY format."
+                        echo
+                    fi
                 else
-                    echo "$p_id:$f_name:$l_name:$m_num:$b_date:$m_type:$j_date" >> "$temp_file"
+                    echo "Invalid Birth Date. Format: MM-DD-YYYY"
+                    echo
                 fi
-            done < "$DATA_FILE"
+            done
 
-            mv "$temp_file" "$DATA_FILE"
-
-            echo "Patron details updated successfully!"
-
-            ;;
-        "q")
-            echo "Update cancelled."
-            ;;
-        *)
-            echo "Invalid input. Please enter (y)es or (q)uit."
+            # Confirm update
+            clear 
             echo
-            ;;
-    esac
+            echo "New Details:"
+            echo "======================================================="
+            echo
+            echo "Patron ID: $current_patron_id"
+            echo "First Name: $first_name"
+            echo "Last Name: $last_name"
+            echo "Mobile Number: $new_mobile_number"
+            echo "Birth Date (MM-DD-YYYY): $new_birth_date"
+            echo "Membership type: $membership_type"
+            echo "Joined Date: $joined_date"
+            echo
 
-    echo
-    read -p "Press (q) to return to Patron Maintenance Menu or any key to continue..." choice
-    if [[ ${choice,,} == "q" ]]; then
+            echo "======================================================="
+            echo
+            echo "Press (q) to return to Patron Maintenance Menu."
+            echo
+
+            confirm_update=true
+            while $confirm_update; do
+                read -p "Are you sure you want to UPDATE the above Patron Details? (y)es or (q)uit: " confirm_update_choice
+
+                case ${confirm_update_choice,,} in
+                    "y")
+                        # Update the patron.txt file
+                        temp_file=$(mktemp)
+
+                        # Rebuild the file with the updated information
+                        while IFS=":" read -r p_id f_name l_name m_num b_date m_type j_date; do
+                            if [[ "$p_id" == "$patron_id" ]]; then
+                                echo "$p_id:$f_name:$l_name:$new_mobile_number:$new_birth_date:$m_type:$j_date" >> "$temp_file"
+                            else
+                                echo "$p_id:$f_name:$l_name:$m_num:$b_date:$m_type:$j_date" >> "$temp_file"
+                            fi
+                        done < "$DATA_FILE"
+
+                        mv "$temp_file" "$DATA_FILE"
+
+                        echo "Patron details updated successfully!"
+                        echo
+                        confirm_update=false
+                        ;;
+                    "q")
+                        echo "Update cancelled."
+                        update_patron
+                        confirm_update=false
+                        ;;
+                    *)
+                        echo ">>> Please enter valid choice (y, q)!"
+                        echo
+                        ;;
+                esac
+
+            done
+
+            another_update_choice=true
+            while $another_update_choice; do
+                read -p "Update another Patron Details? (y)es or (q)uit: " another_update
+                case ${another_update,,} in
+                    "y")
+                        update_patron # Recursive call to update another
+                        another_update_choice=false
+                        ;;
+                    "q")
+                        main_menu
+                        another_update_choice=false
+                        ;;
+                    *)
+                        echo ">>> Please enter valid choice (y, q)!"
+                        echo
+                        ;;
+                esac
+            done
+        continueUpdate=false
+        ;;
+        "Q")
+        continue_update=false
         main_menu
-        return
-    fi
-
-    read -p "Update another patron? (y/n/q): " another_update
-    case ${another_update,,} in
-        "y")
-            update_patron # Recursive call to update another
-            ;;
-        "n")
-            main_menu
-            ;;
-        "q")
-            main_menu
-            ;;
+        ;;
         *)
-            echo "Invalid input. Please enter (y), (n), or (q)."
-            main_menu
-            ;;
-    esac
+        echo ">>> Please enter valid choice (y, q)!"
+        echo
+        ;;
+        esac
+    done    
 }
 
 delete_patron() {
@@ -465,6 +504,7 @@ delete_patron() {
         fi
     done
 
+    echo "======================================================="
     # Fetch and display Patron details
     IFS=":" read -r current_patron_id first_name last_name mobile_number birth_date membership_type joined_date < <(grep "^$patron_id:" "$DATA_FILE")
 
@@ -476,16 +516,19 @@ delete_patron() {
     echo "Membership type: $membership_type"
     echo "Joined Date (MM-DD-YYYY): $joined_date"
     echo
+    
+    echo "======================================================="
 
+    echo
     echo "Press (q) to return to Patron Maintenance Menu."
+    echo
 
-    is_valid_confirmation=false
-    while ! $is_valid_confirmation; do
+    is_valid_confirmation=true
+    while $is_valid_confirmation; do
         read -p "Are you sure you want to DELETE the above Patron Details? (y)es or (q)uit: " delete_confirmation
 
         case ${delete_confirmation,,} in
             "y")
-                is_valid_confirmation=true
                 temp_file=$(mktemp)
 
                 while IFS=":" read -r p_id f_name l_name m_num b_date m_type j_date; do
@@ -497,40 +540,41 @@ delete_patron() {
                 mv "$temp_file" "$DATA_FILE"
 
                 echo "Patron details deleted successfully!"
+                echo
+                is_valid_confirmation=false
                 ;;
             "q")
-                is_valid_confirmation=true
                 echo "Delete cancelled!"
+                echo
                 main_menu
-                return
+                is_valid_confirmation=false
                 ;;
             *)
-                echo "Invalid input. Please enter (y)es or (q)uit!"
+                echo ">>> Please enter valid choice (y, q)!"
                 echo
                 ;;
         esac
     done
 
-    echo
-    read -p "Press (q) to return to Patron Maintenance Menu or any key to continue..." choice
-    if [[ ${choice,,} == "q" ]]; then
-        main_menu
-        return
-    fi
+    another_patron=true
+    while $another_patron; do
+        read -p "Delete another Patron Details? (y)es or (q)uit: " another_delete
+        case ${another_delete,,} in
+            "y")
+                delete_patron # Recursive call to delete another
+                another_patron=false
+                ;;
+            "q")
+                main_menu
+                another_patron=false
+                ;;
+            *)
+                echo ">>> Please enter valid choice (y, q)!"
+                echo
+                ;;
+        esac
+    done
 
-    read -p "Delete another patron? (y/n): " another_delete
-    case ${another_delete,,} in
-        "y")
-            delete_patron # Recursive call to delete another
-            ;;
-        "n" | "q")
-            main_menu
-            ;;
-        *)
-            echo "Invalid input. Please enter (y), (n), or (q)."
-            main_menu
-            ;;
-    esac
 }
 
 sort_last_name() {
@@ -541,7 +585,7 @@ sort_last_name() {
     echo
 
     echo "Last Name                 First Name                Mobile Number        Joined Date     Membership Type"
-    echo "----------------------------------------------------------------------------------------------------------"
+    echo "--------------------------------------------------------------------------------------------------------------"
 
     # Check if the data file exists.
     if [[ ! -f "$DATA_FILE" ]]; then
@@ -599,13 +643,13 @@ sort_last_name() {
 
 sort_patron_id() {
     clear
-    echo "======================================================="
-    echo "       Patron Details Sorted by Patron ID             "
-    echo "======================================================="
+    echo "=============================================================================================================="
+    echo "                                      Patron Details Sorted by Patron ID                                      "
+    echo "=============================================================================================================="
     echo
 
     echo "Patron ID              Last Name                 First Name                Mobile Number          Birth Date"
-    echo "-------------------------------------------------------------------------------------------------------------"
+    echo "--------------------------------------------------------------------------------------------------------------"
 
     # Check if the data file exists.
     if [[ ! -f "$DATA_FILE" ]]; then
@@ -666,12 +710,12 @@ sort_patron_id() {
 
 sort_joined_date() {
     clear
-    echo "======================================================="
-    echo "       Patron Details Sorted by Joined Date           "
-    echo "======================================================="
+    echo "=============================================================================================================="
+    echo "                                      Patron Details Sorted by Joined Date                                      "
+    echo "=============================================================================================================="
     echo
     echo "Patron ID              Last Name                 First Name                Mobile Number          Joined Date"
-    echo "-------------------------------------------------------------------------------------------------------------"
+    echo "--------------------------------------------------------------------------------------------------------------"
 
     # Check if the data file exists.
     if [[ ! -f "$DATA_FILE" ]]; then
@@ -685,8 +729,15 @@ sort_joined_date() {
         return
     fi
 
-    # Skip the first line, sort by the seventh field (Joined Date in descending order), and display the required fields with adjusted formatting.
-    tail -n +2 "$DATA_FILE" | sort -t ":" -k7r | awk -F ":" '{printf "%-22s %-25s %-25s %-22s %-15s\n", $1, $3, $2, $4, $7}'
+    # Skip the first line, reformat the date to "YYYY-MM-dd" for sorting, and sort by the seventh field (Joined Date) in descending order.
+    tail -n +2 "$DATA_FILE" | awk -F ":" '{
+        split($7, date_parts, "-");
+        reformatted_date = date_parts[3] "-" date_parts[1] "-" date_parts[2];
+        print $0 ":" reformatted_date;
+    }' | sort -t ":" -k8r | awk -F ":" '{
+        $8 = ""; sub(/:$/, ""); 
+        printf "%-22s %-25s %-25s %-22s %-15s\n", $1, $3, $2, $4, $7;
+    }'
     echo
 
     echo "Press (q) to return to Patron Maintenance Menu."
@@ -705,8 +756,15 @@ sort_joined_date() {
                 # Prepend "Sort_JoinedDate_" to the file name
                 export_file_name="Sort_JoinedDate_${export_file_name}"
 
-                # Skip the first line, sort the data, and save the required fields with adjusted formatting to the file.
-                tail -n +2 "$DATA_FILE" | sort -t ":" -k7r | awk -F ":" '{printf "%-22s %-25s %-25s %-22s %-15s\n", $1, $3, $2, $4, $7}' > "$export_file_name"
+                # Skip the first line, reformat the date to "YYYY-MM-dd" for sorting, and sort the data, saving the required fields with adjusted formatting to the file.
+                tail -n +2 "$DATA_FILE" | awk -F ":" '{
+                    split($7, date_parts, "-");
+                    reformatted_date = date_parts[3] "-" date_parts[1] "-" date_parts[2];
+                    print $0 ":" reformatted_date;
+                }' | sort -t ":" -k8r | awk -F ":" '{
+                    $8 = ""; sub(/:$/, ""); 
+                    printf "%-22s %-25s %-25s %-22s %-15s\n", $1, $3, $2, $4, $7;
+                }' > "$export_file_name"
 
                 echo "Report exported successfully to $export_file_name!"
                 ;;
