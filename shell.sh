@@ -9,11 +9,11 @@ main_menu() {
     echo "======================================================="
     echo
     echo "A - Add New Patron Details"
-    echo "S - Search A Patron (by Patron ID)"
+    echo "S - Search a Patron (by Patron ID)"
     echo "U - Update a Patron Details"
     echo "D - Delete a Patron Details"
     echo "L - Sort Patrons by Last Name"
-    echo "P - Sort Parons by Patron ID"
+    echo "P - Sort Patrons by Patron ID"
     echo "J - Sort Patrons by Joined Date (Newest to Oldest Date)"
     echo
     echo "Q - Exit from Program"
@@ -55,6 +55,10 @@ main_menu() {
             ;;
         "Q")
             is_valid_choice=false
+            echo "Exiting the program..."
+            echo
+            echo "Thank you for using the Patron Maintenance System! Have a great day!"
+            echo
             exit 0
             ;;
         *)
@@ -75,7 +79,7 @@ add_patron_form() {
     echo "Last Name: "
     echo "Mobile Number: "
     echo "Birth Date (MM-DD-YYYY): "
-    echo "Membership type (Student / Public): "
+    echo "Membership Type (Student / Public): "
     echo "Joined Date (MM-DD-YYYY): "
     echo
     echo "Press (q) to return to Patron Maintenance Menu."
@@ -110,7 +114,7 @@ add_new_patron() {
                     is_valid_patron_id=false
                     break
                 else
-                    echo "Please enter patron id in format (Pxxx)"
+                    echo "Please enter patron id in format (Pxxxx)"
                     echo
                 fi
             done
@@ -133,7 +137,7 @@ add_new_patron() {
             while $is_valid_last_name;
             do
                 read -p 'Last Name: ' last_name
-                if [ ${#last_name} -lt 70 ] && [[ -n $last_name ]] && [[ $last_name == [a-z] || [A-Z] ]]
+                if [ ${#last_name} -lt 70 ] && [[ -n $last_name ]] && [[ $last_name =~ ^[a-zA-Z]+$ ]]
                 then
                     is_valid_last_name=false
                     break
@@ -175,8 +179,10 @@ add_new_patron() {
 
             while $is_valid_mem_type;
             do
-                read -p 'Membership type (Student / Public): ' membership_type
-                if [[ $membership_type == "Student" || $membership_type == "Public" ]]; then
+                read -p 'Membership Type (Student / Public): ' membership_type
+                membership_type_capitalized=$(echo "$membership_type" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
+                if [[ $membership_type_capitalized == "Student" || $membership_type_capitalized == "Public" ]]; then
+                    membership_type=$membership_type_capitalized
                     is_valid_mem_type=false
                 else
                     echo "Please enter a valid membership type (Student/Public)."
