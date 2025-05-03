@@ -1,6 +1,6 @@
 #! /bin/bash
 
-DATA_FILE="$HOME/Desktop/code/OSPracticalAssignment_ShellScript/patron.txt"
+DATA_FILE="$HOME/Desktop/OSPracticalAssignment_ShellScript/patron.txt"
 
 main_menu() {
     clear
