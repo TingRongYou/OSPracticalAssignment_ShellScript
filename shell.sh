@@ -165,10 +165,56 @@ add_new_patron() {
             while $is_valid_birth_date;
             do
                 read -p 'Birth Date (MM-DD-YYYY): ' birth_date
-                if [[ -n $birth_date ]] && [[ $birth_date =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]
-                then
-                    is_valid_birth_date=false
-                    break
+                
+                # First check if the format is correct
+                if [[ -n $birth_date ]] && [[ $birth_date =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]; then
+                    # Parse the date components
+                    month=${birth_date:0:2}
+                    day=${birth_date:3:2}
+                    year=${birth_date:6:4}
+                    
+                    # Remove leading zeros to avoid octal interpretation
+                    month=$(echo "$month" | sed 's/^0//')
+                    day=$(echo "$day" | sed 's/^0//')
+                    
+                    # Check month range (01-12)
+                    if (( month >= 1 && month <= 12 )); then
+                        # Check day range based on month
+                        days_in_month=31
+                        
+                        # April, June, September, November have 30 days
+                        if [[ $month == "4" || $month == "04" || $month == "6" || $month == "06" || $month == "9" || $month == "09" || $month == "11" ]]; then
+                            days_in_month=30
+                        # February special case
+                        elif [[ $month == "2" || $month == "02" ]]; then
+                            # Check for leap year
+                            if (( year % 400 == 0 || ( year % 4 == 0 && year % 100 != 0 ) )); then
+                                days_in_month=29
+                            else
+                                days_in_month=28
+                            fi
+                        fi
+                        
+                        # Check if the day is valid for the month
+                        if (( day >= 1 && day <= days_in_month )); then
+                            # Additional check: ensure date is not in the future
+                            current_year=$(date +%Y)
+                            if (( year <= current_year )); then
+                                # All validations passed
+                                is_valid_birth_date=false
+                                break
+                            else
+                                echo "Error: Birth year cannot be in the future."
+                                echo
+                            fi
+                        else
+                            echo "Error: Invalid day for the specified month. This month has $days_in_month days."
+                            echo
+                        fi
+                    else
+                        echo "Error: Month must be between 01 and 12."
+                        echo
+                    fi
                 else
                     echo "Please enter birth date in the pattern of (MM-DD-YYYY)"
                     echo
@@ -354,10 +400,11 @@ update_patron() {
         read -p "Are you sure you want to UPDATE the above Patron Details? (y)es or (q)uit: " update_confirmation
         case ${update_confirmation^^} in
         "Y")
+            echo
                     # Validation and update for Mobile Number
             is_valid_mobile_num=true
             while $is_valid_mobile_num; do
-                read -p "Mobile Number (e.g., 0xx-xxx xxxx) [$mobile_number]: " new_mobile_number
+                read -p "Mobile Number (e.g., 0xx-xxx xxxx): " new_mobile_number
                 if [[ -z "$new_mobile_number" ]]; then
                     new_mobile_number="$mobile_number" # Keep current if empty
                     is_valid_mobile_num=false
@@ -372,21 +419,65 @@ update_patron() {
             # Validation and update for Birth Date
             is_valid_birth_date=true
             while $is_valid_birth_date; do
-                read -p "Birth Date (MM-DD-YYYY) [$birth_date]: " new_birth_date
+                read -p "Birth Date (MM-DD-YYYY): " new_birth_date
                 if [[ -z "$new_birth_date" ]]; then
                     new_birth_date="$birth_date" # Keep current if empty
                     is_valid_birth_date=false
                 elif [[ "$new_birth_date" =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}$ ]]; then
-                    # Validate that birth date is before joined date
-                    if birth_date_epoch=$(date -d "$(echo "$new_birth_date" | sed 's/-/\//g')" +%s 2>/dev/null) && joined_date_epoch=$(date -d "$(echo "$joined_date" | sed 's/-/\//g')" +%s 2>/dev/null); then
-                        if [[ $birth_date_epoch -lt $joined_date_epoch ]]; then
-                            is_valid_birth_date=false
+                    # Parse the date components
+                    month=${new_birth_date:0:2}
+                    day=${new_birth_date:3:2}
+                    year=${new_birth_date:6:4}
+                    
+                    # Remove leading zeros to avoid octal interpretation
+                    month=$(echo "$month" | sed 's/^0//')
+                    day=$(echo "$day" | sed 's/^0//')
+                    
+                    # Check month range (01-12)
+                    if (( month >= 1 && month <= 12 )); then
+                        # Check day range based on month
+                        days_in_month=31
+                        
+                        # April, June, September, November have 30 days
+                        if [[ $month == "4" || $month == "04" || $month == "6" || $month == "06" || $month == "9" || $month == "09" || $month == "11" ]]; then
+                            days_in_month=30
+                        # February special case
+                        elif [[ $month == "2" || $month == "02" ]]; then
+                            # Check for leap year
+                            if (( year % 400 == 0 || ( year % 4 == 0 && year % 100 != 0 ) )); then
+                                days_in_month=29
+                            else
+                                days_in_month=28
+                            fi
+                        fi
+                        
+                        # Check if the day is valid for the month
+                        if (( day >= 1 && day <= days_in_month )); then
+                            # Additional check: ensure date is not in the future
+                            current_year=$(date +%Y)
+                            if (( year <= current_year )); then
+                                # Validate that birth date is before joined date
+                                if birth_date_epoch=$(date -d "$(echo "$new_birth_date" | sed 's/-/\//g')" +%s 2>/dev/null) && joined_date_epoch=$(date -d "$(echo "$joined_date" | sed 's/-/\//g')" +%s 2>/dev/null); then
+                                    if [[ $birth_date_epoch -lt $joined_date_epoch ]]; then
+                                        is_valid_birth_date=false
+                                    else
+                                        echo "Birth Date must be before Joined Date ($joined_date)."
+                                        echo
+                                    fi
+                                else
+                                    echo "Error: Unable to compare dates. Please ensure both dates are valid."
+                                    echo
+                                fi
+                            else
+                                echo "Error: Birth year cannot be in the future."
+                                echo
+                            fi
                         else
-                            echo "Birth Date must be before Joined Date ($joined_date)."
+                            echo "Error: Invalid day for the specified month. This month has $days_in_month days."
                             echo
                         fi
                     else
-                        echo "Invalid date. Please ensure the date is valid and in MM-DD-YYYY format."
+                        echo "Error: Month must be between 01 and 12."
                         echo
                     fi
                 else
